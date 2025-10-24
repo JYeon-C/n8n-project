@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube AI 챗봇</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .chat-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 600px;
+            height: 700px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .chat-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: #f8f9fa;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            display: flex;
+            animation: fadeIn 0.3s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message.user {
+            justify-content: flex-end;
+        }
+
+        .message-content {
+            max-width: 70%;
+            padding: 12px 18px;
+            border-radius: 18px;
+            word-wrap: break-word;
+        }
+
+        .message.user .message-content {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .message.bot .message-content {
+            background: white;
+            color: #333;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .message.bot .message-content a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .message.bot .message-content a:hover {
+            text-decoration: underline;
+        }
+
+        .typing-indicator {
+            display: none;
+            padding: 12px 18px;
+            background: white;
+            border-radius: 18px;
+            width: fit-content;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .typing-indicator.show {
+            display: block;
+        }
+
+        .typing-indicator span {
+            height: 8px;
+            width: 8px;
+            background: #667eea;
+            border-radius: 50%;
+            display: inline-block;
+            margin: 0 2px;
+            animation: typing 1.4s infinite;
+        }
+
+        .typing-indicator span:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .typing-indicator span:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes typing {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-10px); }
+        }
+
+        .chat-input-area {
+            padding: 20px;
+            background: white;
+            border-top: 1px solid #e0e0e0;
+            display: flex;
+            gap: 10px;
+        }
+
+        #user-input {
+            flex: 1;
+            padding: 12px 18px;
+            border: 2px solid #e0e0e0;
+            border-radius: 25px;
+            font-size: 15px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        #user-input:focus {
+            border-color: #667eea;
+        }
+
+        #send-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        #send-button:hover {
+            transform: scale(1.05);
+        }
+
+        #send-button:active {
+            transform: scale(0.95);
+        }
+
+        #send-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .chat-messages::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .chat-messages::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb {
+            background: #667eea;
+            border-radius: 4px;
+        }
+
+        .error-message {
+            text-align: center;
+            color: #e74c3c;
+            padding: 10px;
+            background: #ffe6e6;
+            border-radius: 10px;
+            margin: 10px 0;
+        }
+
+        .info-message {
+            text-align: center;
+            color: #3498db;
+            padding: 10px;
+            background: #e3f2fd;
+            border-radius: 10px;
+            margin: 10px 0;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">
+            🎥 YouTube AI Assistant
+        </div>
+        
+        <div class="chat-messages" id="chat-messages">
+            <div class="message bot">
+                <div class="message-content">
+                    안녕하세요! YouTube 영상에 대해 궁금한 점을 물어보세요. 😊
+                </div>
+            </div>
+        </div>
+
+        <div class="typing-indicator" id="typing-indicator">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+        
+        <div class="chat-input-area">
+            <input 
+                type="text" 
+                id="user-input" 
+                placeholder="메시지를 입력하세요..." 
+                autocomplete="off"
+            >
+            <button id="send-button">전송</button>
+        </div>
+    </div>
+
+    <script>
+        // ⚠️ n8n Webhook URL
+        const CHAT_WEBHOOK_URL = 'https://jyeon.app.n8n.cloud/webhook/3eb52b0e-21cc-4be4-b326-cb18dfe56527/chat';
+        
+        // 세션 ID 생성 (대화 컨텍스트 유지)
+        const sessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+
+        const chatMessages = document.getElementById('chat-messages');
+        const userInput = document.getElementById('user-input');
+        const sendButton = document.getElementById('send-button');
+        const typingIndicator = document.getElementById('typing-indicator');
+
+        // 메시지 추가 함수
+        function addMessage(sender, text) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}`;
+            
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'message-content';
+            
+            // 링크가 있으면 HTML로 렌더링
+            if (text.includes('http')) {
+                const urlRegex = /(https?:\/\/[^\s]+)/g;
+                contentDiv.innerHTML = text.replace(urlRegex, '<a href="$1" target="_blank">$1</a>');
+            } else {
+                contentDiv.textContent = text;
+            }
+            
+            messageDiv.appendChild(contentDiv);
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // 에러 메시지 표시
+        function showError(message) {
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error-message';
+            errorDiv.textContent = message;
+            chatMessages.appendChild(errorDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // 정보 메시지 표시
+        function showInfo(message) {
+            const infoDiv = document.createElement('div');
+            infoDiv.className = 'info-message';
+            infoDiv.textContent = message;
+            chatMessages.appendChild(infoDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // 메시지 전송 함수
+        async function sendMessage() {
+            const message = userInput.value.trim();
+            if (!message) return;
+
+            // 사용자 메시지 표시
+            addMessage('user', message);
+            userInput.value = '';
+            
+            // 전송 버튼 비활성화
+            sendButton.disabled = true;
+            typingIndicator.classList.add('show');
+
+            try {
+                const response = await fetch(CHAT_WEBHOOK_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'ngrok-skip-browser-warning': 'true', // ngrok 경고 스킵
+                    },
+                    body: JSON.stringify({
+                        action: 'sendMessage',
+                        sessionId: sessionId,
+                        chatInput: message
+                    })
+                });
+
+                if (!response.ok) {
+                    if (response.status === 404) {
+                        throw new Error('Webhook URL이 올바르지 않습니다. n8n에서 워크플로우가 활성화되어 있는지 확인하세요.');
+                    }
+                    throw new Error(`서버 오류: ${response.status}`);
+                }
+
+                const data = await response.json();
+                
+                // 응답 표시
+                const botMessage = data.output || data.response || data.message || '응답을 받지 못했습니다.';
+                addMessage('bot', botMessage);
+
+            } catch (error) {
+                console.error('Error:', error);
+                
+                // CORS 오류 감지
+                if (error.message.includes('CORS') || error.message === 'Failed to fetch') {
+                    showError('🚨 CORS 오류: n8n 워크플로우 설정을 확인하거나 아래 해결 방법을 따라주세요.');
+                    showInfo('💡 해결법: 1) n8n Chat Trigger에서 CORS 허용 설정, 2) 또는 n8n 내장 채팅 UI 사용');
+                } else {
+                    showError(`⚠️ ${error.message}`);
+                }
+            } finally {
+                // 전송 버튼 활성화
+                sendButton.disabled = false;
+                typingIndicator.classList.remove('show');
+                userInput.focus();
+            }
+        }
+
+        // 이벤트 리스너
+        sendButton.addEventListener('click', sendMessage);
+        
+        userInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        // 초기 포커스
+        userInput.focus();
+
+        // CORS 오류 감지를 위한 초기 테스트
+        fetch(CHAT_WEBHOOK_URL, {
+            method: 'OPTIONS',
+            headers: {
+                'ngrok-skip-browser-warning': 'true',
+            }
+        }).catch(() => {
+            showInfo('💡 팁: CORS 오류가 발생하면 n8n 내장 "Test chat" 버튼을 사용해보세요!');
+        });
+    </script>
+</body>
+</html>
